@@ -46,8 +46,9 @@ int (*tscProcessMsgRsp[TSDB_SQL_MAX])(SSqlObj *pSql);
 void (*tscUpdateVnodeMsg[TSDB_SQL_MAX])(SSqlObj *pSql, char *buf);
 void tscProcessActivityTimer(void *handle, void *tmrId);
 int tscKeepConn[TSDB_SQL_MAX] = {0};
-TSKEY tscGetSubscriptionProgress(SSqlObj* pSql, int64_t uid);
-void tscUpdateSubscriptionProgress(SSqlObj* pSql, int64_t uid, TSKEY ts);
+TSKEY tscGetSubscriptionProgress(void* sub, int64_t uid);
+void tscUpdateSubscriptionProgress(void* sub, int64_t uid, TSKEY ts);
+void tscSaveSubscriptionProgress(void* sub);
 
 static int32_t minMsgSize() { return tsRpcHeadSize + sizeof(STaosDigest); }
 
@@ -1493,7 +1494,7 @@ static char* doSerializeTableInfo(SSqlObj* pSql, int32_t numOfMeters, int32_t vn
     SMeterSidExtInfo *pMeterInfo = (SMeterSidExtInfo *)pMsg;
     pMeterInfo->sid = htonl(pMeterMeta->sid);
     pMeterInfo->uid = htobe64(pMeterMeta->uid);
-    pMeterInfo->key = htobe64(tscGetSubscriptionProgress(pSql, pMeterMeta->uid));
+    pMeterInfo->key = htobe64(tscGetSubscriptionProgress(pSql->pSubscription, pMeterMeta->uid));
     pMsg += sizeof(SMeterSidExtInfo);
   } else {
     SVnodeSidList *pVnodeSidList = tscGetVnodeSidList(pMetricMeta, pMeterMetaInfo->vnodeIndex);
@@ -1504,7 +1505,7 @@ static char* doSerializeTableInfo(SSqlObj* pSql, int32_t numOfMeters, int32_t vn
       
       pMeterInfo->sid = htonl(pQueryMeterInfo->sid);
       pMeterInfo->uid = htobe64(pQueryMeterInfo->uid);
-      pMeterInfo->key = htobe64(tscGetSubscriptionProgress(pSql, pQueryMeterInfo->uid));
+      pMeterInfo->key = htobe64(tscGetSubscriptionProgress(pSql->pSubscription, pQueryMeterInfo->uid));
       
       pMsg += sizeof(SMeterSidExtInfo);
       
@@ -3515,8 +3516,9 @@ int tscProcessRetrieveRspFromVnode(SSqlObj *pSql) {
       p += sizeof(int64_t);
       TSKEY key = htobe64(*(TSKEY*)p);
       p += sizeof(TSKEY);
-      tscUpdateSubscriptionProgress(pSql, uid, key);
+      tscUpdateSubscriptionProgress(pSql->pSubscription, uid, key);
     }
+    tscSaveSubscriptionProgress(pSql->pSubscription);
   }
 
   pRes->row = 0;

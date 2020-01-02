@@ -111,7 +111,7 @@ void taos_fetch_rows_a(TAOS_RES *res, void (*fp)(void *param, TAOS_RES *, int nu
 void taos_fetch_row_a(TAOS_RES *res, void (*fp)(void *param, TAOS_RES *, TAOS_ROW row), void *param);
 
 typedef void (*TAOS_SUBSCRIBE_CALLBACK)(TAOS_SUB* tsub, TAOS_RES *res, void* param, int code);
-TAOS_SUB *taos_subscribe(TAOS *taos, const char *sql, TAOS_SUBSCRIBE_CALLBACK fp, void *param, int interval);
+TAOS_SUB *taos_subscribe(const char* topic, int restart, TAOS *taos, const char *sql, TAOS_SUBSCRIBE_CALLBACK fp, void *param, int interval);
 TAOS_RES *taos_consume(TAOS_SUB *tsub);
 void      taos_unsubscribe(TAOS_SUB *tsub);
 
